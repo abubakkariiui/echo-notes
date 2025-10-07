@@ -1,4 +1,6 @@
 ﻿# Echo Notes - AI Voice Note Assistant
+ 
+<img width="1920" height="2413" alt="screencapture-localhost-3000-2025-10-07-13_20_33" src="https://github.com/user-attachments/assets/94960a13-7432-4378-bae9-c1b578f26760" />
 
 Echo Notes turns raw voice recordings into structured meeting summaries, key points, and action items using OpenAI and Supabase. The project ships with a polished Next.js UI optimised for desktop and mobile.
 
