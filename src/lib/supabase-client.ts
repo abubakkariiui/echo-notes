@@ -65,10 +65,17 @@ export async function uploadAudioFile(audioBlob: Blob, fileName: string): Promis
 }
 
 // Helper function to save note to database
-export async function saveNoteToDatabase(note: Omit<Note, 'id' | 'created_at'>) {
+export async function saveNoteToDatabase(
+  userId: string,
+  note: Omit<Note, 'id' | 'created_at' | 'user_id'>,
+) {
   try {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured. Please set up your .env.local file with Supabase credentials.');
+    }
+
+    if (!userId) {
+      throw new Error('Missing user identifier. Please sign in again and retry.');
     }
 
     const { data, error } = await supabase
@@ -76,6 +83,7 @@ export async function saveNoteToDatabase(note: Omit<Note, 'id' | 'created_at'>) 
       .insert([
         {
           ...note,
+          user_id: userId,
           created_at: new Date().toISOString(),
         },
       ])
@@ -94,16 +102,21 @@ export async function saveNoteToDatabase(note: Omit<Note, 'id' | 'created_at'>) 
   }
 }
 
-// Helper function to fetch all notes
-export async function fetchAllNotes(): Promise<Note[]> {
+// Helper function to fetch notes for a specific user
+export async function fetchNotesForUser(userId: string): Promise<Note[]> {
   try {
     if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    if (!userId) {
       return [];
     }
 
     const { data, error } = await supabase
       .from('notes')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {

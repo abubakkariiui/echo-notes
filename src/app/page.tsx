@@ -1,5 +1,13 @@
 'use client';
 
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+  useAuth,
+} from '@clerk/nextjs';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import VoiceRecorder from '@/components/VoiceRecorder';
@@ -106,6 +114,7 @@ export default function Home() {
   const [processedNote, setProcessedNote] = useState<ProcessedNote | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -122,6 +131,11 @@ export default function Home() {
   };
 
   const handleProcessNote = async () => {
+    if (!isSignedIn) {
+      alert('Please sign in to process a note.');
+      return;
+    }
+
     if (!recordedAudio) return;
 
     setIsProcessing(true);
@@ -215,30 +229,58 @@ export default function Home() {
             <span className="hidden rounded-full border border-purple-200 bg-white/60 px-3 py-1 text-xs font-semibold text-purple-600 shadow-sm shadow-purple-200/70 sm:inline-flex">
               Live transcription powered by GPT-4o
             </span>
-            <Link
-              href="#record"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-purple-300 hover:text-purple-600 hover:shadow-md"
-            >
-              <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
-              </svg>
-              Start Recording
-            </Link>
-            <Link
-              href="/notes"
-              className="group inline-flex items-center gap-2 rounded-full border border-transparent bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:shadow-purple-500/50"
-            >
-              <span>View Notes</span>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeWidth={1.8}
-                stroke="currentColor"
-                className="h-4 w-4 transition-transform group-hover:translate-x-1"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6" />
-              </svg>
-            </Link>
+            <SignedOut>
+              <div className="flex items-center gap-3">
+                <SignInButton mode="modal">
+                  <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-purple-300 hover:text-purple-600 hover:shadow-md">
+                    Sign in
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button className="group inline-flex items-center gap-2 rounded-full border border-transparent bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:shadow-purple-500/50">
+                    <span>Create account</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      strokeWidth={1.8}
+                      stroke="currentColor"
+                      className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6" />
+                    </svg>
+                  </button>
+                </SignUpButton>
+              </div>
+            </SignedOut>
+            <SignedIn>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="#record"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-purple-300 hover:text-purple-600 hover:shadow-md"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+                  </svg>
+                  Start Recording
+                </Link>
+                <Link
+                  href="/notes"
+                  className="group inline-flex items-center gap-2 rounded-full border border-transparent bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition-all hover:shadow-purple-500/50"
+                >
+                  <span>View Notes</span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth={1.8}
+                    stroke="currentColor"
+                    className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6" />
+                  </svg>
+                </Link>
+                <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'h-10 w-10' } }} />
+              </div>
+            </SignedIn>
           </div>
         </div>
       </header>
@@ -284,47 +326,69 @@ export default function Home() {
                     <div className="mb-6">
                       <SetupWarning />
                     </div>
-                    {isProcessing ? (
-                      <ProcessingAnimation />
-                    ) : (
-                      <>
-                        <VoiceRecorder onRecordingComplete={handleRecordingComplete} isProcessing={isProcessing} />
-                        {recordedAudio && (
-                          <div className="mt-8 space-y-4">
-                            <div className="rounded-2xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50 to-sky-50 px-6 py-4 shadow-md shadow-emerald-100/60">
-                              <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-4">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
-                                  <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                                <div className="text-center sm:text-left">
-                                  <p className="text-base font-semibold text-emerald-600">Recording captured</p>
-                                  <p className="text-sm text-slate-600">Ready when you are - process now to unlock insights.</p>
+                    <SignedOut>
+                      <div className="rounded-2xl border border-slate-200/70 bg-white/90 px-6 py-8 text-center shadow-inner shadow-purple-200/30">
+                        <p className="text-base font-semibold text-slate-800">Sign in to capture voice notes</p>
+                        <p className="mt-2 text-sm text-slate-600">
+                          Create a free account to record audio, generate AI summaries, and revisit your notes anytime.
+                        </p>
+                        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                          <SignInButton mode="modal">
+                            <button className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-purple-300 hover:text-purple-600 hover:shadow-md">
+                              Sign in
+                            </button>
+                          </SignInButton>
+                          <SignUpButton mode="modal">
+                            <button className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-400/40 transition-all hover:shadow-purple-500/60">
+                              Create account
+                            </button>
+                          </SignUpButton>
+                        </div>
+                      </div>
+                    </SignedOut>
+                    <SignedIn>
+                      {isProcessing ? (
+                        <ProcessingAnimation />
+                      ) : (
+                        <>
+                          <VoiceRecorder onRecordingComplete={handleRecordingComplete} isProcessing={isProcessing} />
+                          {recordedAudio && (
+                            <div className="mt-8 space-y-4">
+                              <div className="rounded-2xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50 to-sky-50 px-6 py-4 shadow-md shadow-emerald-100/60">
+                                <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-4">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
+                                    <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                  <div className="text-center sm:text-left">
+                                    <p className="text-base font-semibold text-emerald-600">Recording captured</p>
+                                    <p className="text-sm text-slate-600">Ready when you are - process now to unlock insights.</p>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                                <button
+                                  onClick={handleProcessNote}
+                                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/40 transition-all hover:shadow-purple-500/60 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:ring-offset-2 focus:ring-offset-white"
+                                >
+                                  Process Note with AI
+                                  <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => setRecordedAudio(null)}
+                                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-8 py-3 text-sm font-semibold text-slate-600 shadow-sm transition-all hover:border-rose-300 hover:text-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:ring-offset-2 focus:ring-offset-white"
+                                >
+                                  Discard
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-                              <button
-                                onClick={handleProcessNote}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/40 transition-all hover:shadow-purple-500/60 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:ring-offset-2 focus:ring-offset-white"
-                              >
-                                Process Note with AI
-                                <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => setRecordedAudio(null)}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-8 py-3 text-sm font-semibold text-slate-600 shadow-sm transition-all hover:border-rose-300 hover:text-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:ring-offset-2 focus:ring-offset-white"
-                              >
-                                Discard
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
+                          )}
+                        </>
+                      )}
+                    </SignedIn>
                   </div>
                 </div>
               </div>

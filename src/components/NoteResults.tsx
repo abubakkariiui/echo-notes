@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -28,6 +29,7 @@ export default function NoteResults({
   onNewNote,
 }: NoteResultsProps) {
   const router = useRouter();
+  const { userId, isSignedIn } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
@@ -41,11 +43,16 @@ export default function NoteResults({
       return;
     }
 
+    if (!isSignedIn || !userId) {
+      alert('Please sign in to save your note.');
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
 
     try {
-      const savedNote = await saveNoteToDatabase({
+      const savedNote = await saveNoteToDatabase(userId, {
         transcription,
         summary,
         key_points: keyPoints,

@@ -1,9 +1,10 @@
 'use client';
 
+import { SignedIn, UserButton, useAuth } from '@clerk/nextjs';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { fetchAllNotes, isSupabaseConfigured, Note, supabase } from '@/lib/supabase-client';
+import { fetchNotesForUser, isSupabaseConfigured, Note, supabase } from '@/lib/supabase-client';
 import SetupWarning from '@/components/SetupWarning';
 
 type NoteMetric = {
@@ -21,10 +22,19 @@ export default function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const { userId, isLoaded, isSignedIn } = useAuth();
 
   useEffect(() => {
-    void fetchNotes();
-  }, []);
+    if (!isLoaded) return;
+
+    if (!isSignedIn || !userId) {
+      setNotes([]);
+      setIsLoading(false);
+      return;
+    }
+
+    void fetchNotes(userId);
+  }, [isLoaded, isSignedIn, userId]);
 
   useEffect(() => {
     if (!isLoading && notes.length > 0 && !selectedNote) {
@@ -32,8 +42,9 @@ export default function NotesPage() {
     }
   }, [isLoading, notes, selectedNote]);
 
-  const fetchNotes = async () => {
+  const fetchNotes = async (currentUserId: string) => {
     try {
+      setIsLoading(true);
       if (!isSupabaseConfigured()) {
         console.warn('Supabase not configured, skipping notes fetch');
         setNotes([]);
@@ -41,7 +52,13 @@ export default function NotesPage() {
         return;
       }
 
-      const data = await fetchAllNotes();
+      if (!currentUserId) {
+        setNotes([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await fetchNotesForUser(currentUserId);
       setNotes(data);
     } catch (error) {
       console.error('Error fetching notes:', error);
@@ -65,8 +82,13 @@ export default function NotesPage() {
   const deleteNote = async (id: string) => {
     if (!confirm('Are you sure you want to delete this note?')) return;
 
+    if (!userId) {
+      alert('You need to be signed in to delete a note.');
+      return;
+    }
+
     try {
-      const { error } = await supabase.from('notes').delete().eq('id', id);
+      const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', userId);
 
       if (error) throw error;
 
@@ -170,6 +192,9 @@ export default function NotesPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6" />
               </svg>
             </Link>
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: 'h-10 w-10' } }} />
+            </SignedIn>
           </div>
         </div>
       </header>

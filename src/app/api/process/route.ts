@@ -1,4 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 // Initialize OpenAI client lazily to avoid build-time errors
@@ -10,13 +11,19 @@ function getOpenAIClient() {
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
 
     if (!audioFile) {
       return NextResponse.json(
         { error: 'No audio file provided' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,13 +33,13 @@ export async function POST(request: NextRequest) {
     // Convert audio file to buffer and create File object
     const bytes = await audioFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    
+
     // Step 1: Transcribe audio using Whisper
     console.log('Transcribing audio...');
-    
+
     // Create a File object from the buffer
     const audioFileForAPI = new File([buffer], 'audio.webm', { type: 'audio/webm' });
-    
+
     const transcription = await openai.audio.transcriptions.create({
       file: audioFileForAPI,
       model: 'whisper-1',
@@ -84,12 +91,11 @@ Be concise, clear, and actionable. If there are no clear action items, still pro
   } catch (error) {
     console.error('Error processing audio:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to process audio',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
